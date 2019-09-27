@@ -17,7 +17,8 @@ import io.reactivex.functions.Consumer;
 /**
  * Create on 2019/9/27
  * author chtj
- * 无网络 ping1分钟查询两次后还不行 自动重启整机。
+ * 网络异常时 每1分钟去ping两次网络后还不行 自动重启系统
+ * 网络正常时 不做任何改变
  */
 public class NetWorkMonitorService extends Service {
     public static final String TAG = "NetWorkMonitorService";
