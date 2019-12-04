@@ -11,15 +11,22 @@ import android.util.Log;
  */
 public class NetWorkReceiver extends BroadcastReceiver {
     public static final String TAG=NetWorkReceiver.class.getSimpleName();
+    public static String ACTION_BOOT="android.intent.action.BOOT_COMPLETED";
+
     public NetWorkReceiver() {
+
     }
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED")) {
+        Log.d(TAG, "onReceive: "+intent.getAction());
+        if (intent.getAction().equals(ACTION_BOOT)) {
             Intent i = new Intent(context, NetWorkMonitorService.class);
-            Log.e(TAG,"即将执行NetErrReboot app程序");
+            Log.d(TAG,"即将执行NetErrReboot app程序");
             context.startService(i);
+        }else if(intent.getAction().equals(NetWorkMonitorService.ACTION_CLOSE_ALL)){
+            NetWorkMonitorService.getInstance().stopService();
+            context.stopService(new Intent(context,NetWorkMonitorService.class));
         }
     }
 }

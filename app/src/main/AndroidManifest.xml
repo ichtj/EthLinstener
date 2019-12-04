@@ -2,36 +2,45 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.face.neterrreboot">
 
+    <!--    android:sharedUserId="android.uid.system"-->
     <application
+        android:name=".BaseApplication"
         android:allowBackup="true"
         android:icon="@mipmap/net_wrok_reboot"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/net_wrok_reboot"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity">
+        <activity
+            android:name=".MainActivity"
+            android:launchMode="singleTop"
+            android:theme="@style/OnePxActivityStyle">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!--开机启动-->
         <receiver
             android:name=".NetWorkReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.close.service.and.notification" />
             </intent-filter>
         </receiver>
+        <!--后台网络监听服务-->
         <service android:name=".NetWorkMonitorService"></service>
     </application>
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-    <uses-permission android:name="android.permission.INTERNET" />
-
+    <!--开机启动-->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"></uses-permission>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
 </manifest>

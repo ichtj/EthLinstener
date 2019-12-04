@@ -5,7 +5,6 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Locale;
@@ -17,22 +16,18 @@ import java.util.Locale;
 public class NetUtils {
     public static final String TAG = "NetUtils";
 
-    public static enum NetType {
+    public enum NetType {
         WIFI, CMNET, CMWAP, NONE, ETH
-    }
-
-    public static enum NetTypeDetail {
-        NET_STATE_2G_CONNECTED, NET_STATE_3G_CONNECTED, NET_STATE_4G_CONNECTED, NET_STATE_UNKNOWN
     }
 
     //Ping
     public static boolean pingIp(String urlAddr) {
         boolean isConnect = false;
         try {
-            String command = "ping -c 2 -w 5 " + urlAddr;
+            String command = "ping -c 1 -w 5 " + urlAddr;
             //KLog.e(TAG,"正在对地址:"+urlAddr+"进行访问,执行的命令为："+command);
-            //代表ping 2 次 超时时间为5秒
-            Process p = Runtime.getRuntime().exec(command);//ping2次
+            //代表ping 1 次 超时时间为5秒
+            Process p = Runtime.getRuntime().exec(command);//ping1次
             int status = p.waitFor();
             if (status == 0) {
                 isConnect = true;
@@ -132,7 +127,7 @@ public class NetUtils {
      * @param context
      * @return
      */
-    public static NET_WORK_TYPE isIntenetConnected(Context context)  {
+    public static NET_WORK_TYPE getConnNetType(Context context)  {
         NET_WORK_TYPE netType = NET_WORK_TYPE.OTHER;
         ConnectivityManager mConnectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo mInternetNetWorkInfo = mConnectivityManager.getActiveNetworkInfo();
