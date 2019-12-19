@@ -17,6 +17,7 @@ import com.chtj.base_iotutils.keepservice.BaseIotUtils;
 import com.face.ethlinstener.R;
 import com.face.ethlinstener.ui.NetworkUtil;
 import com.face.ethlinstener.ui.activity.EthLinstenerActivity;
+import com.face.ethlinstener.ui.utils.NetUtils;
 
 import java.util.concurrent.TimeUnit;
 
@@ -95,16 +96,30 @@ public class EthLinstenerService extends AbsWorkService {
                     @Override
                     public void accept(Long count) throws Exception {
                         try {
-                            EthernetManager ethernetManager = (EthernetManager) BaseIotUtils.getContext().getSystemService("ethernet");
-                            int status = ethernetManager.getEthernetConnectState();//网线连接 2  拔掉网线  0
-                            int iStatus = ethernetManager.getEthernetIfaceState();//启用状态
-                            Log.e(TAG, "eth connect status=" + status + ",iStatus=" + iStatus);
-                            if (iStatus == EthernetDataTracker.ETHER_IFACE_STATE_DOWN) {
-                                //如果当前以太网的状态不等于启用的状态
-                                contentView.setTextViewText(R.id.tvEthStatus, "当前以太网状态：未启用");
-                                manager.notify(14, builder.build());
-                                boolean isEthOpen = ethernetManager.setEthernetEnabled(true);//开启以太网
-                                if (isEthOpen) {
+                            EthernetManager ethernetManager = EthernetManager.getInstance();
+                            int status = ethernetManager.getState();//网线连接 2  拔掉网线  0
+                            boolean isOn=ethernetManager.isOn();
+                            //判断网络是否连接正常
+                            boolean isConnSuccessful1 = NetUtils.pingIp("223.5.5.5");
+                            Log.e(TAG, "eth1 connect status=" + status + ",isOn=" + isOn+",isConnSuccessful1="+isConnSuccessful1);
+                            if (!isConnSuccessful1||status==0||!isOn) {
+                                if(!isConnSuccessful1){
+                                    contentView.setTextViewText(R.id.tvEthStatus, "当前以太网状态：网络异常");
+                                    manager.notify(14, builder.build());
+                                }
+                                if(status==0||!isOn){
+                                    contentView.setTextViewText(R.id.tvEthStatus, "当前以太网状态：以太网开关未启用");
+                                    manager.notify(14, builder.build());
+                                }
+                                ethernetManager.setEnabled(false);//开启以太网
+                                Log.e(TAG, "ethernetManager.setEnabled(false)" );
+                                Thread.sleep(500);
+                                ethernetManager.setEnabled(true);//开启以太网
+                                Log.e(TAG, "ethernetManager.setEnabled(true)" );
+                                status = ethernetManager.getState();//网线连接 2  拔掉网线  0
+                                isOn=ethernetManager.isOn();
+                                Log.e(TAG, "eth2 connect status=" + status + ",isOn=" + isOn);
+                                if (status==1) {
                                     Log.e(TAG, "open Ethernet success！");
                                     contentView.setTextViewText(R.id.tvEthStatus, "当前以太网状态：重置成功");
                                     manager.notify(14, builder.build());
@@ -113,17 +128,14 @@ public class EthLinstenerService extends AbsWorkService {
                                     manager.notify(14, builder.build());
                                     Log.e(TAG, "open Ethernet failed！");
                                 }
-
                             } else {
                                 //如果以太网已经启用
-                                contentView.setTextViewText(R.id.tvEthStatus, "当前以太网状态：启用");
+                                contentView.setTextViewText(R.id.tvEthStatus, "当前以太网状态：正常");
                                 manager.notify(14, builder.build());
-                                Log.e(TAG, "Ethernet is currently on");
+                                Log.e(TAG, "Ethernet is successful");
                             }
-
                         } catch (Exception e) {
                             e.printStackTrace();
-                            Log.e(TAG, "errMeg:" + e.getMessage());
                             contentView.setTextViewText(R.id.tvEthStatus, "当前以太网状态：重置失败");
                             manager.notify(14, builder.build());
                         }

@@ -47,4 +47,5 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
     //implementation files('libs/classes.jar')
+    implementation files('libs/sdkfib5365.jar')
 }
