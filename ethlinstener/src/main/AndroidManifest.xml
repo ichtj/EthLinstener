@@ -19,6 +19,7 @@
         android:roundIcon="@drawable/network_eth"
         android:name=".ui.application.EthApplication"
         android:supportsRtl="true"
+        android:persistent="true"
         android:theme="@style/AppTheme">
         <activity android:name=".ui.activity.EthLinstenerActivity"
             android:launchMode="singleTop">

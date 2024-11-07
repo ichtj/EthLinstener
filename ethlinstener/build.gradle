@@ -1,19 +1,28 @@
 apply plugin: 'com.android.application'
 
 android {
+    signingConfigs {
+        debug {
+            storeFile file('D:\\facefuture.jks')
+            storePassword 'android'
+            keyAlias 'freescale'
+            keyPassword 'android'
+        }
+    }
     compileSdkVersion 29
     buildToolsVersion "29.0.1"
 
 
     defaultConfig {
         applicationId "com.face.ethlinstener"
-        minSdkVersion 15
+        minSdkVersion 19
         targetSdkVersion 29
         versionCode 1
         versionName "1.3"
         multiDexEnabled true
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        signingConfig signingConfigs.debug
     }
 
     buildTypes {
@@ -39,8 +48,7 @@ android {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'androidx.appcompat:appcompat:1.0.2'
-    implementation 'com.chtj.base_iotutils:base_iotutils:1.2.2'
-    implementation 'me.jessyan:autosize:1.1.2'
+    implementation 'com.github.wave-chtj:BaseIotUtils:2.6.7'
     implementation 'com.android.support:multidex:1.0.1'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     testImplementation 'junit:junit:4.12'

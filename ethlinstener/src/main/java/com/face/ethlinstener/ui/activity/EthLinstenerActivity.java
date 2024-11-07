@@ -1,5 +1,6 @@
 package com.face.ethlinstener.ui.activity;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
@@ -8,10 +9,9 @@ import android.widget.Spinner;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.chtj.base_iotutils.SPUtils;
-import com.chtj.base_iotutils.keepservice.BaseIotUtils;
 import com.face.ethlinstener.R;
 import com.face.ethlinstener.ui.service.EthLinstenerService;
+import com.face_chtj.base_iotutils.SPUtils;
 
 import java.util.Arrays;
 /**
@@ -31,7 +31,7 @@ public class EthLinstenerActivity extends AppCompatActivity {
         spCycleInterval=findViewById(R.id.sp_cycle_interval);
         TestArrayAdapter testArrayAdapter1 = new TestArrayAdapter(this, Arrays.asList(cycleIntervalInfo));
         spCycleInterval.setAdapter(testArrayAdapter1);
-        cycleIntervalPosition = SPUtils.getInt("cycleIntervalPosition", 0);
+        cycleIntervalPosition = SPUtils.getInt(EthLinstenerService.KEY_CYCLE_POSITION, 0);
         spCycleInterval.setSelection(cycleIntervalPosition);
 
         //循环间隔选择
@@ -47,20 +47,14 @@ public class EthLinstenerActivity extends AppCompatActivity {
             }
         });
 
-        //①初始化后台保活Service
-        BaseIotUtils.initSerice(EthLinstenerService.class, BaseIotUtils.DEFAULT_WAKE_UP_INTERVAL);
-        EthLinstenerService.sShouldStopService = false;
-        BaseIotUtils.startServiceMayBind(EthLinstenerService.class);
+        startService(new Intent (this, EthLinstenerService.class ));
     }
 
     public void startServiers(View view){
-        SPUtils.putInt("cycleInterval", cycleIntervalNum);
-        SPUtils.putInt("cycleIntervalPosition", cycleIntervalPosition);
-        EthLinstenerService.stopService();
-        //①初始化后台保活Service
-        BaseIotUtils.initSerice(EthLinstenerService.class, BaseIotUtils.DEFAULT_WAKE_UP_INTERVAL);
-        EthLinstenerService.sShouldStopService = false;
-        BaseIotUtils.startServiceMayBind(EthLinstenerService.class);
+        SPUtils.putInt(EthLinstenerService.KEY_CYCLE, cycleIntervalNum);
+        SPUtils.putInt(EthLinstenerService.KEY_CYCLE_POSITION, cycleIntervalPosition);
+        stopService (new Intent ( this,EthLinstenerService.class ));
+        startService(new Intent (this, EthLinstenerService.class ));
     }
 }
 

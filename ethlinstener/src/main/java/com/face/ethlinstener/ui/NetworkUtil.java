@@ -158,11 +158,7 @@ public class NetworkUtil {
         }
     }
 
-    /**
-     * ping "http://www.baidu.com"
-     *
-     * @return
-     */
+
     static private boolean connectionNetwork() {
         boolean result = false;
         HttpURLConnection httpUrl = null;

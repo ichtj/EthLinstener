@@ -3,22 +3,24 @@ package com.face.ethlinstener.ui.service;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.Service;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
-import android.net.EthernetDataTracker;
 import android.net.ethernet.EthernetManager;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.RemoteViews;
 
-import com.chtj.base_iotutils.SPUtils;
-import com.chtj.base_iotutils.keepservice.AbsWorkService;
-import com.chtj.base_iotutils.keepservice.BaseIotUtils;
-import com.face.ethlinstener.R;
-import com.face.ethlinstener.ui.NetworkUtil;
-import com.face.ethlinstener.ui.activity.EthLinstenerActivity;
-import com.face.ethlinstener.ui.utils.NetUtils;
+import androidx.annotation.Nullable;
 
+import com.face.ethlinstener.R;
+import com.face.ethlinstener.ui.activity.EthLinstenerActivity;
+import com.face_chtj.base_iotutils.FileUtils;
+import com.face_chtj.base_iotutils.NetUtils;
+import com.face_chtj.base_iotutils.SPUtils;
+import com.face_chtj.base_iotutils.ShellUtils;
+
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Observable;
@@ -28,43 +30,22 @@ import io.reactivex.functions.Action;
 import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
 
-/**
- * Create on 2019/11/7
- * author chtj
- * desc
- */
-public class EthLinstenerService extends AbsWorkService {
-    public static final String TAG = "EthLinstenerService";
-    //是否 任务完成, 不再需要服务运行?
-    public static boolean sShouldStopService;
+public class EthLinstenerService extends Service {
+    private static final String TAG=EthLinstenerService.class.getSimpleName();
     public static Disposable sDisposable;
-    //系统通知
     private NotificationManager manager = null;
     private Notification.Builder builder = null;
-    //自定义的系统通知视图
     private RemoteViews contentView = null;
-
-    public static void stopService() {
-        //我们现在不再需要服务运行了, 将标志位置为 true
-        sShouldStopService = true;
-        //取消对任务的订阅
-        if (sDisposable != null) sDisposable.dispose();
-        //取消 Job / Alarm / Subscription
-        cancelJobAlarmSub();
-    }
-
-    /**
-     * 是否 任务完成, 不再需要服务运行?
-     *
-     * @return 应当停止服务, true; 应当启动服务, false; 无法判断, 什么也不做, null.
-     */
-    @Override
-    public Boolean shouldStopService(Intent intent, int flags, int startId) {
-        return sShouldStopService;
-    }
+    public static final String KEY_CYCLE_POSITION="cycleIntervalPosition";
+    public static final String KEY_CYCLE="cycleInterval";
+    private static final String DNS_CONFIG="/sdcard/DCIM/dns.config";
+    private String [] DEFAULT_DNS=new String[]{
+            "119.29.29.98","223.6.6.6"
+    };
 
     @Override
-    public void startWork(Intent intent, int flags, int startId) {
+    public void onCreate() {
+        super.onCreate ( );
         manager = (NotificationManager) EthLinstenerService.this.getSystemService(NOTIFICATION_SERVICE);
         builder = new Notification.Builder(EthLinstenerService.this);
         Intent notificationIntent = new Intent(EthLinstenerService.this, EthLinstenerActivity.class);
@@ -80,7 +61,7 @@ public class EthLinstenerService extends AbsWorkService {
         builder.setOngoing(true);//滑动不能清除
         builder.setAutoCancel(false);   //点击的时候消失
         manager.notify(14, builder.build());  //参数一为ID，用来区分不同APP的Notification
-        int time = SPUtils.getInt("cycleInterval", 1);
+        int time = SPUtils.getInt(KEY_CYCLE, 1);
         Log.e(TAG, "start task....，cycleInterval：" + time);
         sDisposable = Observable
                 .interval(0, time, TimeUnit.MINUTES)
@@ -96,30 +77,34 @@ public class EthLinstenerService extends AbsWorkService {
                     @Override
                     public void accept(Long count) throws Exception {
                         try {
-                            EthernetManager ethernetManager = EthernetManager.getInstance();
-                            int status = ethernetManager.getState();//网线连接 2  拔掉网线  0
-                            boolean isOn=ethernetManager.isOn();
-                            //判断网络是否连接正常
-                            boolean isConnSuccessful1 = NetUtils.pingIp("223.5.5.5");
-                            Log.e(TAG, "eth1 connect status=" + status + ",isOn=" + isOn+",isConnSuccessful1="+isConnSuccessful1);
-                            if (!isConnSuccessful1||status==0||!isOn) {
-                                if(!isConnSuccessful1){
+                            List<String> readDnsList= FileUtils.readLineToList (DNS_CONFIG);
+                            String [] dnsList=null;
+                            if (readDnsList.size ()>0){
+                                dnsList=readDnsList.toArray(new String[0]);
+                            }else{
+                                dnsList=DEFAULT_DNS;
+                            }
+                            ShellUtils.CommandResult commandResult=ShellUtils.execCommand ("cat /sys/class/net/eth0/carrier",true);
+                            int status=(commandResult.result==0&&commandResult.successMsg.contains ("1"))?1:0;
+                            boolean pingResult = NetUtils.checkNetWork (dnsList,1,1);
+                            Log.e(TAG, "eth1 connect status=" + status + ",pingResult="+pingResult);
+                            if (!pingResult||status==0) {
+                                if(!pingResult){
                                     contentView.setTextViewText(R.id.tvEthStatus, "当前以太网状态：网络异常");
                                     manager.notify(14, builder.build());
                                 }
-                                if(status==0||!isOn){
+                                if(status==0/*||!isOn*/){
                                     contentView.setTextViewText(R.id.tvEthStatus, "当前以太网状态：以太网开关未启用");
                                     manager.notify(14, builder.build());
                                 }
-                                ethernetManager.setEnabled(false);//开启以太网
-                                Log.e(TAG, "ethernetManager.setEnabled(false)" );
+                                ShellUtils.execCommand ("ifconfig eth0 down",true);//关闭以太网
+                                Log.e(TAG, "eth down" );
                                 Thread.sleep(500);
-                                ethernetManager.setEnabled(true);//开启以太网
-                                Log.e(TAG, "ethernetManager.setEnabled(true)" );
-                                status = ethernetManager.getState();//网线连接 2  拔掉网线  0
-                                isOn=ethernetManager.isOn();
-                                Log.e(TAG, "eth2 connect status=" + status + ",isOn=" + isOn);
-                                if (status==1) {
+                                ShellUtils.execCommand ("ifconfig eth0 up",true);//关闭以太网
+                                Log.e(TAG, "eth up" );
+                                pingResult = NetUtils.checkNetWork (dnsList,1,1);
+                                Log.d (TAG, "accept: pingResult>>"+pingResult);
+                                if (pingResult) {
                                     Log.e(TAG, "open Ethernet success！");
                                     contentView.setTextViewText(R.id.tvEthStatus, "当前以太网状态：重置成功");
                                     manager.notify(14, builder.build());
@@ -143,29 +128,23 @@ public class EthLinstenerService extends AbsWorkService {
                 });
     }
 
-    @Override
-    public void stopWork(Intent intent, int flags, int startId) {
-        stopService();
+    private static void cancelJobAlarmSub() {
+        if (sDisposable != null && !sDisposable.isDisposed()) {
+            sDisposable.dispose();
+            sDisposable = null;
+        }
     }
 
-    /**
-     * 任务是否正在运行?
-     *
-     * @return 任务正在运行, true; 任务当前不在运行, false; 无法判断, 什么也不做, null.
-     */
-    @Override
-    public Boolean isWorkRunning(Intent intent, int flags, int startId) {
-        //若还没有取消订阅, 就说明任务仍在运行.
-        return sDisposable != null && !sDisposable.isDisposed();
-    }
 
+    @Nullable
     @Override
-    public IBinder onBind(Intent intent, Void v) {
+    public IBinder onBind(Intent intent) {
         return null;
     }
 
     @Override
-    public void onServiceKilled(Intent rootIntent) {
-        System.out.println("保存数据到磁盘。");
+    public void onDestroy() {
+        super.onDestroy ( );
+        cancelJobAlarmSub ();
     }
 }
